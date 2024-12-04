@@ -99,8 +99,8 @@ InicioJogo:                                         ; Define os valores iniciais
 		loadn r2, #1536                             ; Define a cor
 		call ImprimeTela
 		
-		loadn R1, #tela3Linha0                      ; Carrega o endereço inicial do cenário
-		loadn R2, #2816                             ; Define a cor
+		loadn r1, #tela3Linha0                      ; Carrega o endereço inicial do cenário
+		loadn r2, #2816                             ; Define a cor
 		call ImprimeTela2                           ; Desenha o cenário na tela
 	
 		loadn r0, #14                                ; Configuração inicial do placar
@@ -108,13 +108,13 @@ InicioJogo:                                         ; Define os valores iniciais
 		loadn r2, #0                                ; Inicializa o contador
 		call ImprimeStr
 		
-		loadn r7, #' '                              ; Inicializa a tecla esperada
 		loadn r6, #615                              ; Configura a posição inicial do personagem
 		loadn r2, #639                              ; Configura a posição inicial do meteoro
 		load r4, player                             ; Armazena o desenho do personagem
 		load r1, meteor                             ; Armazena o desenho do meteoro
 		loadn r5, #0                                ; Define o ciclo do salto (chão, subir ou descer)
-		
+		loadn r3, #0 
+
 		jmp GameLoop                                ; Inicia o loop principal do jogo
 
 GameLoop:                                           ; Ciclo contínuo do jogo
@@ -125,15 +125,24 @@ GameLoop:                                           ; Ciclo contínuo do jogo
 			call PrintaPersonagem                 ; Desenha o personagem
 			call AtPosicaometeor                  ; Atualiza a posição do meteoro
 			outchar r1, r2                        ; Desenha o meteoro
+		
 			call DelayjumpPlayer                  ; Gera um atraso e verifica entrada do jogador
-			call AtPlayerPos                      ; Atualiza a posição do personagem
-			
+			call AtPlayerPos
+
 			push r3                               ; Verifica se o personagem pode pular
 			loadn r3, #0 
 			cmp r5, r3
 				ceq jumpPlayer                   ; Realiza o salto se necessário
 			pop r3
-				
+			
+			call AtPlayerPos2
+
+			push r1                               ; Verifica se o personagem pode agachar
+			loadn r1, #0 
+			cmp r3, r1
+				ceq agacharPlayer		
+			pop r1
+		
 		jmp GameLoop                              ; Repete o ciclo principal
 	
 ;======================================
@@ -224,10 +233,10 @@ ImprimeTela:	; Subrotina para exibir um cenário na tela inteira. Parâmetros: r
 	push r4	; Protege r4 durante a execução.
 	push r5	; Protege r5 durante a execução.
 
-	loadn R0, #0	; Define a posição inicial na tela.
-	loadn R3, #40	; Incremento para pular uma linha na tela.
-	loadn R4, #41	; Incremento para avançar para a próxima linha na memória.
-	loadn R5, #1200	; Limite total da tela.
+	loadn r0, #0	; Define a posição inicial na tela.
+	loadn r3, #40	; Incremento para pular uma linha na tela.
+	loadn r4, #41	; Incremento para avançar para a próxima linha na memória.
+	loadn r5, #1200	; Limite total da tela.
 
 ImprimeTela_Loop:
 	call ImprimeStr	; Exibe uma linha do cenário.
@@ -257,11 +266,11 @@ ImprimeTela2:	; Similar ao "ImprimeTela", mas com um cenário adicional.
 	push r5	; Protege r5 durante a execução.
 	push r6	; Protege r6 durante a execução.
 
-	loadn R0, #0	; Configura a posição inicial na tela.
-	loadn R3, #40	; Incremento para pular uma linha na tela.
-	loadn R4, #41	; Incremento para avançar para a próxima linha na memória.
-	loadn R5, #1200	; Limite total da tela.
-	loadn R6, #tela0Linha0	; Configura o início do cenário adicional.
+	loadn r0, #0	; Configura a posição inicial na tela.
+	loadn r3, #40	; Incremento para pular uma linha na tela.
+	loadn r4, #41	; Incremento para avançar para a próxima linha na memória.
+	loadn r5, #1200	; Limite total da tela.
+	loadn r6, #tela0Linha0	; Configura o início do cenário adicional.
 
 ImprimeTela2_Loop:
 	call ImprimeStr2	; Exibe a linha do cenário adicional.
@@ -366,6 +375,36 @@ ImprimeStr2_Sai:
 ;======================================
 ;			ATUALIZA PLAYER POS
 ;======================================
+AtPlayerPos2:
+	push r0
+	loadn r0, #0
+	
+	loadn r0, #1
+	cmp r3, r0
+		ceq Desce
+
+	loadn r0, #2
+	cmp r3, r0
+		ceq Desce
+
+	loadn r0, #3
+	cmp r3, r0
+		ceq Sobe
+
+	loadn r0, #4
+	cmp r3, r0
+		ceq Sobe
+
+	loadn r0, #0
+	cmp r3, r0
+		cne IncrementaCiclo2
+
+	loadn r0, #5
+	cmp r3, r0
+		ceq ResetaCiclo2
+
+	pop r0
+	rts
 
 AtPlayerPos:	; Atualiza a posição do player com base no ciclo do pulo.
 
@@ -538,14 +577,26 @@ AlteraPos2:
 ; Funcao que checa se o jogador pressionou 'space' e, se sim, inicia o ciclo do pulo
 
 jumpPlayer:
-
-	push r3
-	load r3, Letra 			; Caso ' space' tenha sido pressionado	
-	cmp r7, r3
+	push r7
+	push r4
+	loadn r7, #' '
+	load r4, Letra 			; Caso ' space' tenha sido pressionado	
+	cmp r7, r4
 		ceq IncrementaCiclo		; Inicia o ciclo do pulo
-	pop r3 		
+	pop r4 
+	pop r7		
 	rts
 
+agacharPlayer:
+	push r1
+	push r7
+	loadn r7, #'a'
+	load r1, Letra 			; Caso ' a ' tenha sido pressionado	
+	cmp r7, r1
+		ceq IncrementaCiclo2	
+	pop r1 		
+	pop r7
+	rts
 ;======================================
 ;                 INCREMENTA CICLO PULO
 ;======================================
@@ -556,7 +607,11 @@ IncrementaCiclo:
 
 	inc r5
 	rts
-	
+
+IncrementaCiclo2:
+
+	inc r3
+	rts
 ;======================================
 ;                 RESETA CILO PULO
 ;======================================
@@ -567,7 +622,10 @@ ResetaCiclo:
 
 	loadn r5, #0
 	rts
-	
+ResetaCiclo2:
+
+	loadn r3, #0
+	rts
 ;======================================
 ;                  SOBE
 ;======================================
@@ -854,16 +912,16 @@ tela0Linha29 : string "                                        "
 ; TELA DE JOGO 1
 ;======================================
 ;Cenario
-tela1Linha0  : string "                                        "
-tela1Linha1  : string "                                        "
-tela1Linha2  : string "            *                    *      "
-tela1Linha3  : string "                                        "
-tela1Linha4  : string "    *                  *                "
-tela1Linha5  : string "                                        "
-tela1Linha6  : string "                  *                 *   "
+tela1Linha0  : string "      *                            *    "
+tela1Linha1  : string "                     *                  "
+tela1Linha2  : string "      *****       *             *       "
+tela1Linha3  : string "     ***                                "
+tela1Linha4  : string "    ***       *           *             "
+tela1Linha5  : string "     ***                                "
+tela1Linha6  : string "      *****            *            *   "
 tela1Linha7  : string "                                        "
 tela1Linha8  : string "    *                                   "
-tela1Linha9  : string "                                        "
+tela1Linha9  : string "          *               *             "
 tela1Linha10 : string "                                        "
 tela1Linha11 : string "                                        "
 tela1Linha12 : string "                                        "
@@ -939,20 +997,20 @@ tela3Linha12 : string "                                        "
 tela3Linha13 : string "                                        "
 tela3Linha14 : string "                                        "
 tela3Linha15 : string "                                        "
-tela3Linha16 : string "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"     
+tela3Linha16 : string "                                        "
 tela3Linha17 : string "                                        "
-tela3Linha18 : string "                 .                      "
-tela3Linha19 : string "     . OOOOOOO            .             "
-tela3Linha20 : string "      OOOOOOOOO                   .     "
+tela3Linha18 : string "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+tela3Linha19 : string "     . OOOOOOO            .      .      "
+tela3Linha20 : string "      OOOOOOOOO                         "
 tela3Linha21 : string "        OOOOOO            OOOOOOO       "
 tela3Linha22 : string "         ~~              OOOOOOOOO     O"
 tela3Linha23 : string "     .   ~~               OOOOOOO     OO"
 tela3Linha24 : string "         ~~   .             ~~         O"
 tela3Linha25 : string "         ~~        .        ~~          "
-tela3Linha26 : string "OO                          ~~         "
+tela3Linha26 : string "OO                          ~~          "
 tela3Linha27 : string "OOO  .                      ~~          "
 tela3Linha28 : string "OO                 .                    "
-tela3Linha29 : string "~          .                            "
+tela3Linha29 : string "~          .                    .       "
 
 tela4Linha0  : string "                                        "
 tela4Linha1  : string "                                        "
